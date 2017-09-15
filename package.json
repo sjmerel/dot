@@ -13,14 +13,11 @@
         "enableMultiJS": true,
         "targetPlatforms": 
         [
-            "aplite",
-            "basalt",
-            "chalk",
-            "diorite"
+            "chalk"
         ],
         "watchapp": 
         {
-            "watchface": false
+            "watchface": true
         },
         "messageKeys": 
         [
@@ -34,6 +31,11 @@
                     "type": "png",
                     "name": "IMAGE_BLUETOOTH",
                     "file": "bluetooth.png"
+                },
+                {
+                    "type": "font",
+                    "name": "FONT_LECO_18",
+                    "file": "leco-2014.regular.ttf"
                 }
             ]
         }

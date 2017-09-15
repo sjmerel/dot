@@ -1,28 +1,30 @@
 #include <pebble.h>
+//#include "antialiasing.h"
 
 const GColor k_bgColor = { GColorBlackARGB8 };
 
 const GColor k_dotColor = { GColorWhiteARGB8 };
 const int k_dotRadius = 70;
-const int k_dotSize = 4;
+const int k_dotSize = 5;
 
 const GColor k_hourColor = { GColorRedARGB8 };
 const int k_hourRadius = 35;
-const int k_hourSize = 6;
+const int k_hourSize = 5;
 
 const GColor k_minuteColor = { GColorOrangeARGB8 };
 const int k_minuteRadius = 50;
-const int k_minuteSize = 6;
+const int k_minuteSize = 5;
 
 const GColor k_dateColor = { GColorWhiteARGB8 };
-const char* k_dateFont = FONT_KEY_GOTHIC_14;
-const int k_dateRadius = 20;
+const int k_dateRadius = 65;
 const int k_dateSize = 20;
 
 Window* g_window = NULL;
 Layer* g_layer = NULL;
-BatteryChargeState g_chargeState;
+BatteryChargeState g_batteryState;
 GBitmap* g_bluetoothBitmap = NULL;
+GFont g_dateFont;
+GFont g_batteryFont;
 bool g_connected = false;
 GSize g_size;
 GPoint g_center;
@@ -40,10 +42,12 @@ static void layerUpdateProc(Layer* layer, GContext* context)
 {
     //APP_LOG(APP_LOG_LEVEL_DEBUG, "%d %d %d %d", cos, sin, p.x, p.y);
     graphics_context_set_fill_color(context, k_dotColor);
+    // graphics_context_set_antialiased(context, true);
 
     for (int h = 0; h < 12; ++h)
     {
         GPoint p = getPoint(h*5, k_dotRadius);
+        //graphics_fill_circle_antialiased(context, p, k_dotSize, k_dotColor);
         graphics_fill_circle(context, p, k_dotSize);
     }
 
@@ -52,14 +56,34 @@ static void layerUpdateProc(Layer* layer, GContext* context)
     int hour = tm->tm_hour % 12;
     int minute = tm->tm_min;
     int date = tm->tm_mday;
-    char dateBuf[3];
+    static char dateBuf[3];
     snprintf(dateBuf, sizeof(dateBuf), "%d", date);
+
+    if (!g_connected)
+    {
+        GPoint p = getPoint(30, 20);
+        GRect rect = gbitmap_get_bounds(g_bluetoothBitmap);
+        rect.origin.x = p.x - rect.size.w/2; 
+        rect.origin.y = p.y - rect.size.h/2; 
+        graphics_draw_bitmap_in_rect(context, g_bluetoothBitmap, rect);
+    }
+
+    if (g_batteryState.is_charging || g_batteryState.charge_percent < 30)
+    {
+        static char batteryBuf[5];
+        snprintf(batteryBuf, sizeof(batteryBuf), "%d%%", g_batteryState.charge_percent);
+        GPoint p = getPoint(0, 20);
+        GRect rect = GRect(p.x - 30, p.y - 10, 60, 20);
+        graphics_draw_text(context, batteryBuf, g_batteryFont, rect, GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+    }
 
     GPoint hourPoint = getPoint(hour*5 + minute/12, k_hourRadius);
     graphics_context_set_fill_color(context, k_hourColor);
     graphics_fill_circle(context, hourPoint, k_hourSize);
+    //graphics_fill_circle_antialiased(context, hourPoint, k_hourSize, k_hourColor);
     graphics_context_set_stroke_color(context, k_hourColor);
     graphics_draw_line(context, g_center, hourPoint);
+    // graphics_draw_line_antialiased(context, g_center, hourPoint, k_hourColor);
 
     GPoint minutePoint = getPoint(minute, k_minuteRadius);
     graphics_context_set_fill_color(context, k_minuteColor);
@@ -67,25 +91,19 @@ static void layerUpdateProc(Layer* layer, GContext* context)
     graphics_context_set_stroke_color(context, k_minuteColor);
     graphics_draw_line(context, g_center, minutePoint);
 
-    GPoint datePoint = g_center; // getPoint(45, k_dateRadius);
+    graphics_context_set_fill_color(context, k_dotColor);
+    graphics_fill_circle(context, g_center, k_dotSize);
+
+    GPoint datePoint = getPoint(45, k_dateRadius);
     graphics_context_set_fill_color(context, k_bgColor);
     graphics_fill_circle(context, datePoint, k_dateSize-2);
     graphics_context_set_stroke_color(context, k_dateColor);
     graphics_draw_circle(context, datePoint, k_dateSize-2);
-    GFont font = fonts_get_system_font(k_dateFont);
     GRect dateRect = GRect(datePoint.x - k_dateSize, datePoint.y - k_dateSize, k_dateSize*2, k_dateSize*2);
     //graphics_draw_rect(context, dateRect);
     dateRect.origin.y += 8;
-    graphics_draw_text(context, dateBuf, font, dateRect, GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+    graphics_draw_text(context, dateBuf, g_dateFont, dateRect, GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
 
-    // if (!g_connected)
-    {
-        GPoint bluetoothPoint = getPoint(15, 20);
-        GRect bluetoothRect = gbitmap_get_bounds(g_bluetoothBitmap);
-        bluetoothRect.origin.x = bluetoothPoint.x - bluetoothRect.size.w/2; 
-        bluetoothRect.origin.y = bluetoothPoint.y - bluetoothRect.size.h/2; 
-        graphics_draw_bitmap_in_rect(context, g_bluetoothBitmap, bluetoothRect);
-    }
 }
 
 static void tickTimerHandler(struct tm* tick_time, TimeUnits units_changed) 
@@ -101,11 +119,8 @@ static void bluetoothConnectionHandler(bool connected)
 
 static void batteryStateHandler(BatteryChargeState charge)
 {
-    g_chargeState = charge;
+    g_batteryState = charge;
     layer_mark_dirty(g_layer);
-    // text_layer_set_text(g_battery_layer, battery_str(charge));
-    // bool battery_on = (charge.charge_percent < 30 || charge.is_charging);
-    // g_battery_on = battery_on;
 }
 
 static void init() 
@@ -123,12 +138,17 @@ static void init()
     layer_set_update_proc(g_layer, layerUpdateProc);
     layer_add_child(windowLayer, g_layer);
 
+    g_batteryFont = fonts_get_system_font(FONT_KEY_GOTHIC_14);
+    g_dateFont = fonts_get_system_font(FONT_KEY_LECO_20_BOLD_NUMBERS);
     g_bluetoothBitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BLUETOOTH);
 
     // subscribe to services
     tick_timer_service_subscribe(MINUTE_UNIT, &tickTimerHandler);
     bluetooth_connection_service_subscribe(bluetoothConnectionHandler);
     battery_state_service_subscribe(batteryStateHandler);
+
+    bluetoothConnectionHandler(bluetooth_connection_service_peek());
+    batteryStateHandler(battery_state_service_peek());
 }
 
 static void deinit() 
