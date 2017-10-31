@@ -76,17 +76,17 @@ enum { k_dotSize = 6 };
 
 const GColor k_hourColor = { GColorOrangeARGB8 };
 enum { k_hourRadius = 30 };
-enum { k_hourSize = 6 };
+enum { k_hourSize = 8 };
 
 const GColor k_minuteColor = { GColorChromeYellowARGB8 };
 enum { k_minuteRadius = 50 };
-enum { k_minuteSize = 6 };
+enum { k_minuteSize = 8 };
 
 const GColor k_dateColor = { GColorWhiteARGB8 };
 enum { k_dateRadius = 70 };
 enum { k_dateSize = 12 };
 
-enum { k_pathWidth = 2 };
+enum { k_pathWidth = 4 };
 
 const GPathInfo k_minutePathInfo =
 {
@@ -164,6 +164,7 @@ static void layerUpdateProc(Layer* layer, GContext* context)
         graphics_draw_text(context, batteryBuf, g_batteryFont, rect, GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
     }
 
+    // hour hand
     // GColor8 k_hourColor = (GColor8){.argb=g_colors[g_colorIndex]};
     int hmin = hour*5 + minute/12;
     GPoint hourPoint = getPoint(hmin, k_hourRadius);
@@ -175,6 +176,7 @@ static void layerUpdateProc(Layer* layer, GContext* context)
     gpath_rotate_to(g_hourPath, getAngle(hmin));
     gpath_draw_filled(context, g_hourPath);
 
+    // minute hand
     GPoint minutePoint = getPoint(minute, k_minuteRadius);
     graphics_context_set_fill_color(context, k_minuteColor);
     graphics_fill_circle(context, minutePoint, k_minuteSize);
@@ -184,12 +186,12 @@ static void layerUpdateProc(Layer* layer, GContext* context)
     gpath_rotate_to(g_minutePath, getAngle(minute));
     gpath_draw_filled(context, g_minutePath);
 
-    graphics_context_set_fill_color(context, k_bgColor);
-    graphics_fill_circle(context, g_center, k_dotSize);
-    graphics_context_set_stroke_color(context, k_dotColor);
-    graphics_draw_circle(context, g_center, k_dotSize);
+    graphics_context_set_fill_color(context, k_minuteColor);
+    graphics_fill_circle(context, g_center, 10);
+    graphics_context_set_fill_color(context, k_hourColor);
+    graphics_fill_circle(context, g_center, 5);
 
-    GPoint datePoint = getPoint(45, k_dateRadius);
+    GPoint datePoint = getPoint(15, k_dateRadius);
     graphics_context_set_fill_color(context, k_bgColor);
     graphics_fill_circle(context, datePoint, k_dateSize);
     graphics_context_set_stroke_color(context, k_dateColor);
@@ -210,6 +212,10 @@ static void tickTimerHandler(struct tm* tick_time, TimeUnits units_changed)
 static void bluetoothConnectionHandler(bool connected)
 {
     g_connected = connected;
+    if (!connected)
+    {
+        vibes_short_pulse();
+    }
     layer_mark_dirty(g_layer);
 }
 
