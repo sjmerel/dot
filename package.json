@@ -13,7 +13,8 @@
         "enableMultiJS": true,
         "targetPlatforms": 
         [
-            "chalk"
+            "chalk",
+            "basalt"
         ],
         "watchapp": 
         {
