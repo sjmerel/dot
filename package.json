@@ -11,10 +11,7 @@
         "uuid": "64a23a6f-38f4-43e2-9907-b0ecd4c518d4",
         "sdkVersion": "3",
         "enableMultiJS": true,
-        "targetPlatforms": 
-        [
-            "chalk",
-            "basalt"
+        "targetPlatforms": [
         ],
         "watchapp": 
         {

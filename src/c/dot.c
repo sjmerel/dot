@@ -1,21 +1,25 @@
 #include <pebble.h>
 
 
-const GColor k_bgColor = { GColorBlackARGB8 };
+#define BG_COLOR GColorBlack
+#define DOT_COLOR GColorWhite
+#define MINUTE_COLOR GColorChromeYellow
+#define DATE_COLOR GColorWhite
+#if PBL_COLOR
+#  define HOUR_COLOR GColorOrange
+#else
+#  define HOUR_COLOR GColorLightGray
+#endif
 
-const GColor k_dotColor = { GColorWhiteARGB8 };
 enum { k_dotRadius = 90 };
 enum { k_dotSize = 6 };
 
-const GColor k_hourColor = { GColorOrangeARGB8 };
 enum { k_hourRadius = 35 };
 enum { k_hourSize = 8 };
 
-const GColor k_minuteColor = { GColorChromeYellowARGB8 };
 enum { k_minuteRadius = 65 };
 enum { k_minuteSize = 8 };
 
-const GColor k_dateColor = { GColorWhiteARGB8 };
 enum { k_dateRadius = 82 };
 enum { k_dateSize = 12 };
 
@@ -34,7 +38,17 @@ int getAngle(int minute)
     return TRIG_MAX_ANGLE * (minute - 15) / 60;
 }
 
-#ifdef PBL_PLATFORM_BASALT
+#ifdef PBL_PLATFORM_CHALK
+GPoint getPoint(int minute, int radiusPct)
+{
+    int angle = getAngle(minute);
+    int cos = cos_lookup(angle);
+    int sin = sin_lookup(angle);
+    int radius = g_size.w*radiusPct/200;
+    return GPoint(g_center.x + cos * radius / TRIG_MAX_RATIO,
+                  g_center.y + sin * radius / TRIG_MAX_RATIO);
+}
+#else
 GPoint getPoint(int minute, int radiusPct)
 {
     int angle = getAngle(minute);
@@ -42,8 +56,8 @@ GPoint getPoint(int minute, int radiusPct)
     int sin = sin_lookup(angle);
     int x;
     int y;
-    const int my = 84*radiusPct/100;
-    const int mx = 72*radiusPct/100;
+    const int my = g_size.h*radiusPct/200;
+    const int mx = g_size.w*radiusPct/200;
     if (minute > 53 || minute < 7)
     {
         y = -my-1;
@@ -66,34 +80,16 @@ GPoint getPoint(int minute, int radiusPct)
     }
     return GPoint(g_center.x + x, g_center.y + y);
 }
-#else
-GPoint getPoint(int minute, int radiusPct)
-{
-    int angle = getAngle(minute);
-    int cos = cos_lookup(angle);
-    int sin = sin_lookup(angle);
-    int radius = g_size.w*radiusPct/100;
-    return GPoint(g_center.x + cos * radius / TRIG_MAX_RATIO,
-                  g_center.y + sin * radius / TRIG_MAX_RATIO);
-}
 #endif
 
 static void layerUpdateProc(Layer* layer, GContext* context)
 {
-    //APP_LOG(APP_LOG_LEVEL_DEBUG, "%d %d %d %d", cos, sin, p.x, p.y);
-
-    graphics_context_set_stroke_color(context, k_dotColor);
+    graphics_context_set_stroke_color(context, DOT_COLOR);
     graphics_context_set_antialiased(context, true);
-    /*
-    for (int m = 0; m < 60; ++m)
-    {
-        GPoint p = getPoint(m, k_dotRadius);
-        graphics_draw_circle(context, p, 2);
-    }
-    */
 
     for (int h = 0; h < 12; ++h)
     {
+        if (h == 3) continue;
         GPoint p = getPoint(h*5, k_dotRadius);
         graphics_draw_circle(context, p, k_dotSize);
     }
@@ -127,30 +123,34 @@ static void layerUpdateProc(Layer* layer, GContext* context)
     // hour hand
     int hmin = hour*5 + minute/12;
     GPoint hourPoint = getPoint(hmin, k_hourRadius);
-    graphics_context_set_fill_color(context, k_hourColor);
-    graphics_fill_circle(context, hourPoint, k_hourSize);
-    graphics_context_set_stroke_color(context, k_hourColor);
+    graphics_context_set_fill_color(context, HOUR_COLOR);
+#if PBL_COLOR
+    graphics_context_set_stroke_color(context, HOUR_COLOR);
+#else
+    graphics_context_set_stroke_color(context, MINUTE_COLOR);
+#endif
     graphics_context_set_stroke_width(context, 4);
     graphics_draw_line(context, g_center, getPoint(hmin, k_hourRadius));
+    graphics_fill_circle(context, hourPoint, k_hourSize);
 
     // minute hand
     GPoint minutePoint = getPoint(minute, k_minuteRadius);
-    graphics_context_set_fill_color(context, k_minuteColor);
+    graphics_context_set_fill_color(context, MINUTE_COLOR);
     graphics_fill_circle(context, minutePoint, k_minuteSize);
-    graphics_context_set_stroke_color(context, k_minuteColor);
+    graphics_context_set_stroke_color(context, MINUTE_COLOR);
     graphics_context_set_stroke_width(context, 4);
     graphics_draw_line(context, g_center, getPoint(minute, k_minuteRadius));
 
-    graphics_context_set_fill_color(context, k_minuteColor);
+    graphics_context_set_fill_color(context, MINUTE_COLOR);
     graphics_fill_circle(context, g_center, 10);
-    graphics_context_set_fill_color(context, k_hourColor);
+    graphics_context_set_fill_color(context, HOUR_COLOR);
     graphics_fill_circle(context, g_center, 5);
 
     GPoint datePoint = getPoint(15, k_dateRadius);
     graphics_context_set_stroke_width(context, 1);
-    graphics_context_set_fill_color(context, k_bgColor);
+    graphics_context_set_fill_color(context, BG_COLOR);
     graphics_fill_circle(context, datePoint, k_dateSize);
-    graphics_context_set_stroke_color(context, k_dateColor);
+    graphics_context_set_stroke_color(context, DATE_COLOR);
     graphics_draw_circle(context, datePoint, k_dateSize);
     GRect dateRect = GRect(datePoint.x - k_dateSize, datePoint.y - k_dateSize, k_dateSize*2, k_dateSize*2);
     //graphics_draw_rect(context, dateRect);
@@ -184,7 +184,7 @@ static void batteryStateHandler(BatteryChargeState charge)
 static void init() 
 {
     g_window = window_create();
-    window_set_background_color(g_window, k_bgColor);
+    window_set_background_color(g_window, BG_COLOR);
     window_stack_push(g_window, true);
 
     Layer* windowLayer = window_get_root_layer(g_window);
