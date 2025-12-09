@@ -1,41 +1,30 @@
 {
-    "name": "dot",
-    "author": "Steve Merel",
-    "version": "1.0.0",
-    "keywords": ["pebble-app"],
-    "private": true,
-    "dependencies": {},
-    "pebble": 
-    {
-        "displayName": "dot",
-        "uuid": "64a23a6f-38f4-43e2-9907-b0ecd4c518d4",
-        "sdkVersion": "3",
-        "enableMultiJS": true,
-        "targetPlatforms": [
-        ],
-        "watchapp": 
+  "name": "dot",
+  "author": "Steve Merel",
+  "version": "1.0.0",
+  "keywords": ["pebble-app"],
+  "private": true,
+  "dependencies": {},
+  "pebble": {
+    "displayName": "dot",
+    "uuid": "64a23a6f-38f4-43e2-9907-b0ecd4c518d4",
+    "sdkVersion": "3",
+    "enableMultiJS": true,
+    "targetPlatforms": [],
+    "watchapp": {
+      "watchface": true
+    },
+    "messageKeys": [
+      "dummy"
+    ],
+    "resources": {
+      "media": [
         {
-            "watchface": true
-        },
-        "messageKeys": 
-        [
-            "dummy"
-        ],
-        "resources": 
-        {
-            "media": 
-            [
-                {
-                    "type": "png",
-                    "name": "IMAGE_BLUETOOTH",
-                    "file": "bluetooth.png"
-                },
-                {
-                    "type": "font",
-                    "name": "FONT_LECO_18",
-                    "file": "leco-2014.regular.ttf"
-                }
-            ]
+          "type": "png",
+          "name": "IMAGE_BLUETOOTH",
+          "file": "bluetooth.png"
         }
+      ]
     }
+  }
 }
