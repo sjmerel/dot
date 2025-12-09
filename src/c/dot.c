@@ -104,7 +104,7 @@ static void layerUpdateProc(Layer* layer, GContext* context)
 
     if (!g_connected)
     {
-        GPoint p = getPoint(30, 22);
+        GPoint p = getPoint(30, 30);
         GRect rect = gbitmap_get_bounds(g_bluetoothBitmap);
         rect.origin.x = p.x - rect.size.w/2; 
         rect.origin.y = p.y - rect.size.h/2; 
@@ -198,7 +198,6 @@ static void init()
 
     g_batteryFont = fonts_get_system_font(FONT_KEY_GOTHIC_14);
     g_dateFont = fonts_get_system_font(FONT_KEY_GOTHIC_18);
-    // g_dateFont = fonts_get_system_font(FONT_KEY_LECO_20_BOLD_NUMBERS);
     g_bluetoothBitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BLUETOOTH);
 
     // subscribe to services
